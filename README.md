@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Front Painel Vercel OL
 
-## Getting Started
+![Next.js](https://img.shields.io/badge/Next.js-15-blue?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-4.x-blue?logo=typescript)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-38bdf8?logo=tailwindcss)
+![PNPM](https://img.shields.io/badge/PNPM-%E2%9C%94-yellow?logo=pnpm)
 
-First, run the development server:
+> Painel administrativo moderno para gestão de pedidos, clientes e retornos, desenvolvido com Next.js, React, TypeScript e TailwindCSS.
+
+## ✨ Funcionalidades
+
+- Visualização e filtro de pedidos por data, status, cliente, filial e fornecedor
+- Modal detalhado do pedido com informações do cliente, itens e financeiro
+- Reenvio de retorno de pedido e de NF com feedback visual
+- Busca inteligente e filtros dinâmicos
+- UI responsiva e moderna (mobile e desktop)
+- Animações e transições suaves
+- Toasts de feedback para ações
+
+## 🚀 Tecnologias Utilizadas
+
+- [Next.js 15](https://nextjs.org/)
+- [React 18+](https://react.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [TailwindCSS](https://tailwindcss.com/)
+- [PNPM](https://pnpm.io/)
+- [Lucide Icons](https://lucide.dev/)
+
+## 📦 Instalação
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone o repositório
+$ git clone https://github.com/ronaldobonifacio/front-painel-vercel-ol.git
+$ cd front-painel-vercel-ol
+
+# Instale as dependências
+$ pnpm install
+
+# Crie um arquivo .env.local se necessário
+$ cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🏃‍♂️ Rodando o Projeto
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Ambiente de desenvolvimento
+$ pnpm dev
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Build de produção
+$ pnpm build
+$ pnpm start
+```
 
-## Learn More
+Acesse: http://localhost:3000
 
-To learn more about Next.js, take a look at the following resources:
+## 📝 Estrutura de Pastas
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+├── app/                # Páginas e layout Next.js
+├── components/         # Componentes reutilizáveis
+├── hooks/              # Custom hooks
+├── lib/                # Funções utilitárias
+├── public/             # Arquivos estáticos
+├── styles/             # Estilos globais
+├── ...
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠️ Customização
+- Edite `admin-panel.tsx` para alterar regras de negócio e UI principal.
+- Ajuste variáveis de ambiente em `.env.local` conforme necessário.
 
-## Deploy on Vercel
+## 🤝 Contribuição
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nome-feature`)
+3. Commit suas alterações (`git commit -m 'feat: minha feature'`)
+4. Push para a branch (`git push origin feature/nome-feature`)
+5. Abra um Pull Request
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+Desenvolvido com 💙 por [Ronaldo Bonifácio](https://github.com/ronaldobonifacio)
