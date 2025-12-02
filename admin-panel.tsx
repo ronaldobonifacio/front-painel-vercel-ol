@@ -89,6 +89,19 @@ interface PedidoDetalhado {
   lote: string
 }
 
+const parsePtBrNumber = (value: any): number => {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value !== 'string') {
+    return 0;
+  }
+  // Remove o separador de milhar (.) e substitui a vírgula decimal (,) por ponto (.)
+  const cleanedValue = value.replace(/\./g, '').replace(',', '.');
+  const number = parseFloat(cleanedValue);
+  return isNaN(number) ? 0 : number;
+};
+
 const StatusIndicator = ({ status }: { status: string }) => {
   const getStatusStyle = () => {
     switch (status) {
@@ -198,9 +211,9 @@ export default function AdminPanel() {
         if (!response.ok) throw new Error('Erro na requisição')
         const data: PedidoAPI[] = await response.json()
         const sortedByDate = [...data].sort((a, b) => {
-          const dateCompare = a.data.localeCompare(b.data)
+          const dateCompare = b.data.localeCompare(a.data)
           if (dateCompare !== 0) return dateCompare
-          return a.hora.localeCompare(b.hora)
+          return b.hora.localeCompare(a.hora)
         })
         const FORNECEDORES_NORMALIZADOS: Record<string, string> = {
           'ACHEAL3.2': 'ACHE',
@@ -214,6 +227,8 @@ export default function AdminPanel() {
         const pedidosFormatados: PedidoFormatado[] = sortedByDate.map((pedido, index) => {
           const fornecedorOriginal = pedido.fornecedor.trim()
           const fornecedorNormalizado = FORNECEDORES_NORMALIZADOS[fornecedorOriginal] || fornecedorOriginal
+          const valorNumerico = parsePtBrNumber(pedido.valor)
+          const valorfatNumerico = parsePtBrNumber(pedido.valorfat)
           return {
             id: index + 1,
             pedido: pedido.numpedido.toString(),
@@ -221,12 +236,12 @@ export default function AdminPanel() {
             fornecedorOriginal: fornecedorOriginal,
             cliente: (pedido.nome_cliente || pedido.cliente).trim(),
             filial: pedido.filial,
-            valor: `R$ ${pedido.valor.toLocaleString('pt-BR', {
+            valor: `R$ ${valorNumerico.toLocaleString('pt-BR', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
             })}`,
-            valorNumerico: pedido.valor,
-            valorfatNumerico: pedido.valorfat,
+            valorNumerico: valorNumerico,
+            valorfatNumerico: valorfatNumerico,
             data: formatarData(pedido.data),
             hora: pedido.hora,
             status: mapearStatus(pedido.status),
