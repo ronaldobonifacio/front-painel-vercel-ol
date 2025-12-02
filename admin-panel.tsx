@@ -1,14 +1,15 @@
 "use client"
+
 import * as React from "react"
 import { useEffect, useState } from "react"
-import { Filter, PackageOpen, XCircle, Search, CalendarIcon, Info, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Package, DollarSign, CreditCard, Users, X, Settings, RefreshCw } from "lucide-react"
+import { Filter, PackageOpen, XCircle, Search, CalendarIcon, Info, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Package, DollarSign, CreditCard, Users, X, Settings, RefreshCw, CheckCircle } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -128,7 +129,11 @@ export default function AdminPanel() {
   const [sortConfig, setSortConfig] = React.useState<{ key: string; direction: "ascending" | "descending" } | null>(null)
   const [currentPage, setCurrentPage] = React.useState(1)
   const itemsPerPage = 7
-  const [date, setDate] = React.useState<Date | undefined>(new Date())
+  const [date, setDate] = React.useState<Date | undefined>(undefined)
+  React.useEffect(() => {
+    // Só define a data no client, nunca no server
+    setTimeout(() => setDate(new Date()), 0)
+  }, [])
   const [isCalendarOpenDesktop, setIsCalendarOpenDesktop] = React.useState(false)
   const [isCalendarOpenMobile, setIsCalendarOpenMobile] = React.useState(false)
   const [searchTerm, setSearchTerm] = React.useState("")
@@ -141,7 +146,7 @@ export default function AdminPanel() {
   const [fornecedorOriginalModal, setFornecedorOriginalModal] = React.useState<string | null>(null)
   const [isReenviandoPedido, setIsReenviandoPedido] = React.useState(false)
   const [isReenviandoNF, setIsReenviandoNF] = React.useState(false)
-  const { toast } = useToast()
+  const [isOptionsModalOpen, setIsOptionsModalOpen] = React.useState(false)
 
   const formatarData = (dataString: string) => {
     const [ano, mes, dia] = dataString.match(/(\d{4})(\d{2})(\d{2})/)?.slice(1) || []
@@ -185,7 +190,7 @@ export default function AdminPanel() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const url = new URL('http://192.168.0.181:3002/pedidos')
+        const url = new URL('/api/pedidos-cache', window.location.origin)
         if (date) {
           url.searchParams.set('date', format(date, 'yyyyMMdd'))
         }
@@ -329,40 +334,83 @@ export default function AdminPanel() {
   // Recebe explicitamente os parâmetros do pedido, fornecedor original e tipo
   const reenviarRetorno = async ({ pedido, fornecedor, tipo }: { pedido: string | null, fornecedor: string | null, tipo: 'pedido' | 'nf' }) => {
     if (!pedido || !fornecedor) return
+    // Log dos dados enviados
+    console.log('[REENVIAR RETORNO]', { pedido, fornecedor, tipo })
     if (tipo === 'pedido') setIsReenviandoPedido(true)
     if (tipo === 'nf') setIsReenviandoNF(true)
-    try {
-      const response = await fetch('http://192.168.0.181:3002/pedidos/reenviar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pedido,
-          fornecedor,
-          tipo
-        })
-      })
-      if (!response.ok) throw new Error('Falha ao reenviar o retorno')
-      toast({
-        title: "Sucesso",
-        description: tipo === 'pedido' 
-          ? "Retorno do pedido reenviado com sucesso"
-          : "Retorno da NF reenviado com sucesso",
-      })
-    } catch (err) {
-      toast({
-        title: "Erro",
-        description: tipo === 'pedido'
-          ? "Falha ao reenviar o retorno do pedido. Tente novamente."
-          : "Falha ao reenviar o retorno da NF. Tente novamente.",
-        variant: "destructive"
-      })
-    } finally {
-      if (tipo === 'pedido') setIsReenviandoPedido(false)
-      if (tipo === 'nf') setIsReenviandoNF(false)
-    }
-  }
+            try {
+              const user = process.env.NEXT_PUBLIC_PROTHEUS_USER;
+              const pass = process.env.NEXT_PUBLIC_PROTHEUS_PASS;
+        
+              if (!user || !pass) {
+                toast.error("Erro de Configuração", {
+                  description: "Credenciais do Protheus não configuradas. Verifique as variáveis de ambiente.",
+                  icon: <XCircle className="h-5 w-5 text-red-600" />,
+                  classNames: {
+                    toast: 'border border-red-200 bg-red-50 shadow-lg',
+                    title: 'font-semibold text-red-800',
+                    description: 'text-red-700',
+                  }
+                });
+                return;
+              }
+              
+              const response = await fetch('http://192.168.1.241:8088/html-protheus/rest/wspedidool/clearretorno', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Basic ${btoa(`${user}:${pass}`)}`,
+                },
+                body: JSON.stringify({
+                  pedido,
+                  fornecedor,
+                  rettipo: tipo === 'pedido' ? 'PEDIDO' : 'NOTA'
+                })
+              });
+        
+              if (!response.ok) throw new Error(`Falha na requisição: ${response.statusText}`);
+              
+              const result = await response.json();
+        
+              if (result.pedido_encontrado === "true") {
+                toast.success("Sucesso!", {
+                  description: result.observacao || (tipo === 'pedido' 
+                    ? "Retorno do pedido reenviado com sucesso."
+                    : "Retorno da NF reenviado com sucesso."),
+                  icon: <CheckCircle className="h-5 w-5 text-green-600" />,
+                  classNames: {
+                    toast: 'border border-green-200 bg-green-50 shadow-lg',
+                    title: 'font-semibold text-green-800',
+                    description: 'text-green-700',
+                  }
+                });
+              } else {
+                toast.error("Falha na Operação", {
+                  description: "O pedido não foi encontrado no Protheus para limpar os campos de retorno.",
+                  icon: <XCircle className="h-5 w-5 text-red-600" />,
+                  classNames: {
+                    toast: 'border border-red-200 bg-red-50 shadow-lg',
+                    title: 'font-semibold text-red-800',
+                    description: 'text-red-700',
+                  }
+                });
+              }
+            } catch (err) {
+              toast.error("Erro na comunicação", {
+                description: err instanceof Error ? err.message : "Ocorreu um erro desconhecido. Verifique o console.",
+                icon: <XCircle className="h-5 w-5 text-red-600" />,
+                classNames: {
+                  toast: 'border border-red-200 bg-red-50 shadow-lg',
+                  title: 'font-semibold text-red-800',
+                  description: 'text-red-700',
+                }
+              });
+              console.error(err);
+            } finally {
+              if (tipo === 'pedido') setIsReenviandoPedido(false)
+              if (tipo === 'nf') setIsReenviandoNF(false)
+              setIsOptionsModalOpen(false)
+            }  }
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
@@ -374,7 +422,8 @@ export default function AdminPanel() {
   const clientesUnicos = new Set(filteredPedidos.map(p => p.cliente)).size
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <>
+      <div className="flex min-h-screen flex-col bg-gray-50">
       <header className="sticky top-0 z-10 border-b bg-white p-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center justify-between">
@@ -904,8 +953,8 @@ export default function AdminPanel() {
                 )}
               </DialogTitle>
               
-              <Popover>
-                <PopoverTrigger asChild>
+              <Dialog open={isOptionsModalOpen} onOpenChange={setIsOptionsModalOpen}>
+                <DialogTrigger asChild>
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -915,12 +964,12 @@ export default function AdminPanel() {
                     <Settings className="h-4 w-4" />
                     Opções do Pedido
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="end">
-                  <div className="border-b border-gray-100 bg-blue-50/50 p-4">
-                    <h4 className="text-sm font-semibold text-blue-900">Detalhes do Pedido</h4>
+                </DialogTrigger>
+                <DialogContent className="w-auto p-0 max-w-md rounded-lg overflow-hidden">
+                  <DialogHeader className="border-b border-gray-100 bg-blue-50/50 p-4 text-left">
+                    <DialogTitle className="text-sm font-semibold text-blue-900">Detalhes do Pedido</DialogTitle>
                     <p className="text-xs text-blue-600 mt-1">Informações para reenvio do retorno</p>
-                  </div>
+                  </DialogHeader>
                   <div className="p-4 space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
@@ -943,11 +992,14 @@ export default function AdminPanel() {
                       <Button
                         className="w-full bg-blue-600 text-white hover:bg-blue-700 transform transition-all duration-200 active:scale-95 hover:shadow-lg hover:-translate-y-0.5"
                         disabled={isReenviandoPedido}
-                        onClick={() => reenviarRetorno({
-                          pedido: selectedPedido,
-                          fornecedor: fornecedorOriginalModal,
-                          tipo: 'pedido'
-                        })}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          reenviarRetorno({
+                            pedido: selectedPedido,
+                            fornecedor: fornecedorOriginalModal,
+                            tipo: 'pedido'
+                          })
+                        }}
                       >
                         {isReenviandoPedido ? (
                           <div className="flex items-center justify-center gap-2">
@@ -966,11 +1018,14 @@ export default function AdminPanel() {
                         <Button
                           className="w-full bg-blue-600 text-white hover:bg-blue-700 transform transition-all duration-200 active:scale-95 hover:shadow-lg hover:-translate-y-0.5"
                           disabled={isReenviandoNF}
-                          onClick={() => reenviarRetorno({
-                            pedido: selectedPedido,
-                            fornecedor: fornecedorOriginalModal,
-                            tipo: 'nf'
-                          })}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            reenviarRetorno({
+                              pedido: selectedPedido,
+                              fornecedor: fornecedorOriginalModal,
+                              tipo: 'nf'
+                            })
+                          }}
                         >
                           {isReenviandoNF ? (
                             <div className="flex items-center justify-center gap-2">
@@ -987,8 +1042,8 @@ export default function AdminPanel() {
                       )}
                     </div>
                   </div>
-                </PopoverContent>
-              </Popover>
+                </DialogContent>
+              </Dialog>
             </div>
           </DialogHeader>
           {isLoadingDetails ? (
@@ -1188,6 +1243,8 @@ export default function AdminPanel() {
           ) : null}
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+      {/* Relógios no canto inferior direito (server+client) */}
+    </>
   )
 }
